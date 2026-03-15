@@ -1,0 +1,127 @@
+# MCP Gateway Configuration
+#
+# The gateway aggregates multiple MCP servers behind a single endpoint.
+# Each server gets a unique name, and its tools are namespaced as: {name}__{tool}
+#
+# Environment variables can be referenced as ${VAR_NAME} anywhere in this file.
+
+# ── Gateway settings ─────────────────────────────────────────────────────────
+
+# Address to bind when using sse or streamable-http transport (ignored for stdio).
+listen: ":8080"
+
+# Base URL for SSE message endpoint. Useful when behind a reverse proxy with TLS.
+# Defaults to http://localhost:{port} derived from listen.
+# base_url: "https://mcp.example.com"
+
+# Transport the gateway exposes to clients: stdio, sse, or streamable-http.
+transport: stdio
+
+# ── Servers ──────────────────────────────────────────────────────────────────
+
+servers:
+
+  # ┌─────────────────────────────────────────────────────────────────────────┐
+  # │ Container-based servers (docker / podman / nerdctl / finch)            │
+  # │                                                                       │
+  # │ When command is a container runtime, use "image" and "env" fields.    │
+  # │ The gateway automatically adds: run --rm -i -e KEY=VAL ... <image>    │
+  # ├─────────────────────────────────────────────────────────────────────────┤
+
+  # Same MCP server, two different Grafana instances:
+  - name: grafana_production
+    transport: stdio
+    command: podman
+    image: grafana/mcp-grafana
+    args: ["-t", "stdio"]
+    env:
+      GRAFANA_URL: https://grafana.production.example.com
+      GRAFANA_API_KEY: ${GRAFANA_PROD_API_KEY}
+
+  - name: grafana_staging
+    transport: stdio
+    command: podman
+    image: grafana/mcp-grafana
+    args: ["-t", "stdio"]
+    env:
+      GRAFANA_URL: https://grafana.staging.example.com
+      GRAFANA_API_KEY: ${GRAFANA_STAGING_API_KEY}
+
+  # Container with docker instead of podman:
+  # - name: postgres_tools
+  #   transport: stdio
+  #   command: docker
+  #   image: crystaldba/mcp-server-postgres
+  #   args: ["--access-mode", "unrestricted"]
+  #   env:
+  #     DATABASE_URI: "postgresql://user:pass@host:5432/mydb"
+
+  # ┌─────────────────────────────────────────────────────────────────────────┐
+  # │ Local process servers (any command via STDIO)                          │
+  # │                                                                       │
+  # │ For non-container commands, "args" and "env" are passed directly      │
+  # │ to the spawned process.                                               │
+  # ├─────────────────────────────────────────────────────────────────────────┤
+
+  # Node.js-based server via npx:
+  # - name: filesystem
+  #   transport: stdio
+  #   command: npx
+  #   args: ["-y", "@modelcontextprotocol/server-filesystem", "/home/user/documents"]
+
+  # Python-based server via uvx:
+  # - name: github_personal
+  #   transport: stdio
+  #   command: uvx
+  #   args: ["mcp-server-github"]
+  #   env:
+  #     GITHUB_TOKEN: ${GITHUB_PERSONAL_TOKEN}
+
+  # Same server, different credentials:
+  # - name: github_work
+  #   transport: stdio
+  #   command: uvx
+  #   args: ["mcp-server-github"]
+  #   env:
+  #     GITHUB_TOKEN: ${GITHUB_WORK_TOKEN}
+
+  # Local binary:
+  # - name: sqlite
+  #   transport: stdio
+  #   command: /usr/local/bin/mcp-server-sqlite
+  #   args: ["--db", "/path/to/database.db"]
+
+  # ┌─────────────────────────────────────────────────────────────────────────┐
+  # │ Remote servers (SSE or Streamable HTTP)                                │
+  # │                                                                       │
+  # │ Connect to MCP servers running on remote hosts.                       │
+  # │ Use "headers" to pass authentication tokens.                          │
+  # ├─────────────────────────────────────────────────────────────────────────┤
+
+  # Remote server via SSE:
+  # - name: remote_sse
+  #   transport: sse
+  #   url: "https://mcp.example.com/sse"
+  #   headers:
+  #     Authorization: "Bearer ${REMOTE_API_KEY}"
+
+  # Remote server via Streamable HTTP:
+  # - name: remote_http
+  #   transport: streamable-http
+  #   url: "https://mcp.example.com/mcp"
+  #   headers:
+  #     Authorization: "Bearer ${REMOTE_API_KEY}"
+  #     X-Tenant-ID: "my-org"
+
+  # Multiple instances of the same remote with different auth:
+  # - name: slack_team_alpha
+  #   transport: streamable-http
+  #   url: "https://mcp-slack.example.com/mcp"
+  #   headers:
+  #     Authorization: "Bearer ${SLACK_ALPHA_TOKEN}"
+  #
+  # - name: slack_team_beta
+  #   transport: streamable-http
+  #   url: "https://mcp-slack.example.com/mcp"
+  #   headers:
+  #     Authorization: "Bearer ${SLACK_BETA_TOKEN}"
