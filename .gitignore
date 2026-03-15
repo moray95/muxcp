@@ -1,6 +1,9 @@
 # Binary
 /muxcp
 
+# Test
+coverage.out
+
 # Go
 vendor/
 
