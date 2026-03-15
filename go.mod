@@ -1,4 +1,4 @@
-module github.com/moray/mcp-gateway
+module github.com/moray95/muxcp
 
 go 1.25.1
 

@@ -75,7 +75,7 @@ func (b *Backend) connect(ctx context.Context) error {
 	// Initialize the MCP session
 	initReq := mcp.InitializeRequest{}
 	initReq.Params.ClientInfo = mcp.Implementation{
-		Name:    "mcp-gateway",
+		Name:    "muxcp",
 		Version: "1.0.0",
 	}
 	initReq.Params.ProtocolVersion = mcp.LATEST_PROTOCOL_VERSION

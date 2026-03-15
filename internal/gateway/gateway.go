@@ -49,7 +49,7 @@ func (g *Gateway) Start(ctx context.Context) error {
 
 	// Build the MCP server with aggregated tools
 	g.mcpServer = server.NewMCPServer(
-		"mcp-gateway",
+		"muxcp",
 		"1.0.0",
 		server.WithToolCapabilities(false),
 		server.WithRecovery(),
