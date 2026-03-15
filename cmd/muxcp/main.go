@@ -13,14 +13,22 @@ import (
 )
 
 func main() {
-	configPath := flag.String("config", "config.yaml", "path to gateway config file")
+	configPath := flag.String("config", "", "path to config file")
 	flag.Parse()
 
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	})))
 
-	cfg, err := gateway.LoadConfig(*configPath)
+	resolvedPath, err := gateway.FindConfig(*configPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+
+	slog.Info("using config", "path", resolvedPath)
+
+	cfg, err := gateway.LoadConfig(resolvedPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)

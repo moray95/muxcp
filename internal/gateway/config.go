@@ -4,9 +4,66 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
+
+const configFileName = "config.yaml"
+
+// FindConfig resolves the config file path using the following precedence:
+// 1. Explicitly provided path (from -config flag)
+// 2. ./config.yaml (current directory)
+// 3. User config dir (~/.config/muxcp/config.yaml on Linux/macOS, %AppData%\muxcp on Windows)
+// 4. System config dir (/etc/muxcp/config.yaml on Unix, %ProgramData%\muxcp on Windows)
+func FindConfig(explicit string) (string, error) {
+	if explicit != "" {
+		if _, err := os.Stat(explicit); err == nil {
+			return explicit, nil
+		}
+		return "", fmt.Errorf("config file not found: %s", explicit)
+	}
+
+	var candidates []string
+
+	candidates = append(candidates, configFileName)
+
+	if userDir, err := os.UserConfigDir(); err == nil {
+		candidates = append(candidates, filepath.Join(userDir, "muxcp", configFileName))
+	}
+
+	candidates = append(candidates, systemConfigPath())
+
+	for _, path := range candidates {
+		if _, err := os.Stat(path); err == nil {
+			return path, nil
+		}
+	}
+
+	// Resolve all paths to absolute for a clear error message
+	searched := make([]string, 0, len(candidates))
+	for _, c := range candidates {
+		if abs, err := filepath.Abs(c); err == nil {
+			searched = append(searched, abs)
+		} else {
+			searched = append(searched, c)
+		}
+	}
+
+	return "", fmt.Errorf("no config file found; searched: %s", strings.Join(searched, ", "))
+}
+
+func systemConfigPath() string {
+	if runtime.GOOS == "windows" {
+		pd := os.Getenv("ProgramData")
+		if pd == "" {
+			pd = `C:\ProgramData`
+		}
+		return pd + `\muxcp\` + configFileName
+	}
+	return "/etc/muxcp/" + configFileName
+}
 
 // TransportType defines the transport protocol for MCP communication.
 type TransportType string
