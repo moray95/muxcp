@@ -8,19 +8,11 @@ permissions:
   contents: write
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-      - uses: golangci/golangci-lint-action@v7
-        with:
-          version: latest
+  check:
+    uses: ./.github/workflows/check.yml
 
   release:
-    needs: lint
+    needs: check
     runs-on: ubuntu-latest
     environment: default
     steps:
