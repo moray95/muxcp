@@ -22,6 +22,7 @@ jobs:
   release:
     needs: lint
     runs-on: ubuntu-latest
+    environment: default
     steps:
       - uses: actions/checkout@v4
         with:

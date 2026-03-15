@@ -23,11 +23,13 @@ builds:
         goarch: arm
 
 archives:
-  - format: tar.gz
-    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+  - formats:
+      - tar.gz
     format_overrides:
       - goos: windows
-        format: zip
+        formats:
+          - zip
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
 
 checksum:
   name_template: "checksums.txt"
@@ -40,16 +42,12 @@ changelog:
       - "^test:"
       - "^ci:"
 
-brews:
+homebrew_casks:
   - repository:
       owner: moray95
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    directory: Formula
+    directory: Casks
     homepage: "https://github.com/moray95/muxcp"
     description: "MCP server multiplexer — aggregate multiple MCP servers behind a single endpoint"
     license: "MIT"
-    install: |
-      bin.install "muxcp"
-    test: |
-      assert_match "muxcp", shell_output("#{bin}/muxcp --help 2>&1", 2)
