@@ -1,0 +1,55 @@
+version: 2
+
+project_name: muxcp
+
+builds:
+  - main: ./cmd/muxcp
+    binary: muxcp
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+      - freebsd
+    goarch:
+      - amd64
+      - arm64
+      - arm
+    goarm:
+      - "7"
+    ignore:
+      - goos: windows
+        goarch: arm
+
+archives:
+  - format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+
+brews:
+  - repository:
+      owner: moray95
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: "https://github.com/moray95/muxcp"
+    description: "MCP server multiplexer — aggregate multiple MCP servers behind a single endpoint"
+    license: "MIT"
+    install: |
+      bin.install "muxcp"
+    test: |
+      assert_match "muxcp", shell_output("#{bin}/muxcp --help 2>&1", 2)
