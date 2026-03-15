@@ -1,0 +1,103 @@
+version: "2"
+
+linters:
+  # Default-enabled (no need to list): errcheck, govet, ineffassign, staticcheck, unused
+  enable:
+    # Bugs
+    - bodyclose
+    - durationcheck
+    - errorlint
+    - nilerr
+    - nilnesserr
+    - noctx
+    - sqlclosecheck
+
+    # Unused / dead code
+    - unconvert
+    - unparam
+    - wastedassign
+
+    # Style
+    - copyloopvar
+    - dupword
+    - gocritic
+    - misspell
+    - nakedret
+    - nosprintfhostport
+    - predeclared
+    - recvcheck
+    - revive
+    - whitespace
+
+    # Security
+    - gosec
+
+    # Performance
+    - perfsprint
+    - prealloc
+    - intrange
+
+    # Structured logging
+    - sloglint
+
+    # Modernization
+    - modernize
+
+  settings:
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - performance
+        - style
+      disabled-checks:
+        - ifElseChain
+        - hugeParam
+
+    nakedret:
+      max-func-lines: 10
+
+    revive:
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: dot-imports
+        - name: error-return
+        - name: error-strings
+        - name: error-naming
+        - name: exported
+          arguments: [disableStutteringCheck]
+        - name: increment-decrement
+        - name: indent-error-flow
+        - name: range
+        - name: receiver-naming
+        - name: redefines-builtin-id
+        - name: superfluous-else
+        - name: unreachable-code
+        - name: var-naming
+
+    gosec:
+      excludes:
+        - G104  # covered by errcheck
+        - G304  # reading config files by path is intentional
+
+    sloglint:
+      kv-only: true
+
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - gosec
+          - errcheck
+          - gocritic
+          - unparam
+
+output:
+  formats:
+    text:
+      print-linter-name: true
+
+formatters:
+  enable:
+    - gofmt
+    - goimports

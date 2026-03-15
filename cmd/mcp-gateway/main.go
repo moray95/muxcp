@@ -32,24 +32,19 @@ func main() {
 		slog.Info("loaded config", "servers", len(cfg.Servers), "listen", cfg.Listen, "transport", cfg.Transport)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
 	gw := gateway.NewGateway(cfg)
 
-	// Handle graceful shutdown
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-sigCh
-		slog.Info("shutting down...")
+	if err := gw.Start(ctx); err != nil {
 		gw.Shutdown()
 		cancel()
-		os.Exit(0)
-	}()
-
-	if err := gw.Start(ctx); err != nil {
-		fmt.Fprintf(os.Stderr, "gateway error: %v\n", err)
-		os.Exit(1)
+		slog.Error("gateway error", "error", err)
+		os.Exit(1) //nolint:gocritic // intentional exit on startup failure
 	}
+
+	<-ctx.Done()
+	slog.Info("shutting down...")
+	gw.Shutdown()
 }

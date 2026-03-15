@@ -82,7 +82,7 @@ func (b *Backend) connect(ctx context.Context) error {
 
 	_, err = c.Initialize(ctx, initReq)
 	if err != nil {
-		c.Close()
+		_ = c.Close()
 		return fmt.Errorf("initializing: %w", err)
 	}
 
@@ -90,7 +90,7 @@ func (b *Backend) connect(ctx context.Context) error {
 
 	// Discover tools
 	if err := b.refreshTools(ctx); err != nil {
-		c.Close()
+		_ = c.Close()
 		return fmt.Errorf("listing tools: %w", err)
 	}
 

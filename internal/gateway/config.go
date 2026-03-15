@@ -8,14 +8,17 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// TransportType defines the transport protocol for MCP communication.
 type TransportType string
 
+// Supported transport types.
 const (
 	TransportStdio          TransportType = "stdio"
 	TransportSSE            TransportType = "sse"
 	TransportStreamableHTTP TransportType = "streamable-http"
 )
 
+// ServerInstanceConfig defines the configuration for a single upstream MCP server.
 type ServerInstanceConfig struct {
 	Name      string            `yaml:"name"`
 	Transport TransportType     `yaml:"transport"`
@@ -27,13 +30,15 @@ type ServerInstanceConfig struct {
 	Env       map[string]string `yaml:"env,omitempty"`     // for stdio (extra env vars)
 }
 
+// GatewayConfig defines the top-level gateway configuration.
 type GatewayConfig struct {
 	Listen    string                 `yaml:"listen"`
 	BaseURL   string                 `yaml:"base_url"`  // externally-reachable URL for SSE message endpoint
-	Transport TransportType          `yaml:"transport"`  // what transport to expose: stdio, sse, or streamable-http
+	Transport TransportType          `yaml:"transport"` // what transport to expose: stdio, sse, or streamable-http
 	Servers   []ServerInstanceConfig `yaml:"servers"`
 }
 
+// LoadConfig reads and parses the gateway configuration from a YAML file.
 func LoadConfig(path string) (*GatewayConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -82,11 +87,12 @@ func isContainerRuntime(command string) bool {
 // resolveContainerArgs builds the full args for a container runtime command.
 // It prepends "run --rm -i", adds -e flags for env vars, the image, then the user args.
 func resolveContainerArgs(cfg *ServerInstanceConfig) {
-	var args []string
+	// 3 base args + 2 per env var + 1 image + user args
+	args := make([]string, 0, 3+2*len(cfg.Env)+1+len(cfg.Args))
 	args = append(args, "run", "--rm", "-i")
 
 	for k, v := range cfg.Env {
-		args = append(args, "-e", fmt.Sprintf("%s=%s", k, v))
+		args = append(args, "-e", k+"="+v)
 	}
 
 	args = append(args, cfg.Image)

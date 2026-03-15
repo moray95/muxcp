@@ -25,6 +25,7 @@ type Gateway struct {
 	mu           sync.RWMutex
 }
 
+// NewGateway creates a new gateway with the given configuration.
 func NewGateway(cfg *GatewayConfig) *Gateway {
 	return &Gateway{
 		config:       cfg,
@@ -74,9 +75,10 @@ func (g *Gateway) registerTools() {
 
 	for _, b := range g.backends {
 		b.mu.RLock()
-		for _, t := range b.Tools {
+		for i := range b.Tools {
+			t := &b.Tools[i]
 			nsName := b.Name + namespaceSep + t.Name
-			namespacedTool := cloneToolWithName(t, nsName)
+			namespacedTool := cloneToolWithName(*t, nsName)
 
 			g.mu.Lock()
 			g.toolRoute[nsName] = b
@@ -106,7 +108,7 @@ func (g *Gateway) makeHandler(nsName string) server.ToolHandlerFunc {
 		g.mu.RUnlock()
 
 		if !ok {
-			return mcp.NewToolResultError(fmt.Sprintf("unknown tool: %s", nsName)), nil
+			return mcp.NewToolResultError("unknown tool: " + nsName), nil
 		}
 
 		args := req.GetArguments()
