@@ -37,12 +37,12 @@ func NewGateway(cfg *GatewayConfig) *Gateway {
 // Start connects to all backends, builds the aggregated tool set, and starts the MCP server.
 func (g *Gateway) Start(ctx context.Context) error {
 	// Connect to all backends
-	for _, scfg := range g.config.Servers {
-		b, err := NewBackend(ctx, scfg)
+	for i := range g.config.Servers {
+		b, err := NewBackend(ctx, g.config.Servers[i])
 		if err != nil {
 			// Close already-connected backends on failure
 			g.closeBackends()
-			return fmt.Errorf("connecting backend %q: %w", scfg.Name, err)
+			return fmt.Errorf("connecting backend %q: %w", g.config.Servers[i].Name, err)
 		}
 		g.backends = append(g.backends, b)
 	}

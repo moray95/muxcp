@@ -20,12 +20,19 @@ transport: stdio
 # ── Servers ──────────────────────────────────────────────────────────────────
 
 servers:
-
   # ┌─────────────────────────────────────────────────────────────────────────┐
-  # │ Container-based servers (docker / podman / nerdctl / finch)            │
-  # │                                                                       │
-  # │ When command is a container runtime, use "image" and "env" fields.    │
-  # │ The gateway automatically adds: run --rm -i -e KEY=VAL ... <image>    │
+  # │ Container-based servers (docker / podman / nerdctl / finch)             │
+  # │                                                                         │
+  # │ When command is a container runtime, use "image" and "env" fields.      │
+  # │ The gateway automatically adds:                                         │
+  # │   run --rm -i -e KEY=VAL ... -v HOST:CTR ... [runtime_args] IMAGE       │
+  # │                                                                         │
+  # │ Supported fields:                                                       │
+  # │   image          - container image to run (required)                    │
+  # │   env            - environment variables (added as -e flags)            │
+  # │   volumes        - volume mounts (added as -v flags)                    │
+  # │   runtime_args   - extra runtime flags (placed before the image)        │
+  # │   args           - arguments passed to the entrypoint (after image)     │
   # ├─────────────────────────────────────────────────────────────────────────┤
 
   # Same MCP server, two different Grafana instances:
@@ -56,11 +63,32 @@ servers:
   #   env:
   #     DATABASE_URI: "postgresql://user:pass@host:5432/mydb"
 
+  # Container with volume mounts:
+  # - name: filesystem_tools
+  #   transport: stdio
+  #   command: docker
+  #   image: my-mcp-server
+  #   volumes:
+  #     - "/home/user/documents:/data:ro"
+  #     - "/tmp/workspace:/workspace"
+  #   args: ["--root", "/data"]
+
+  # Container with extra runtime flags:
+  # - name: gpu_tools
+  #   transport: stdio
+  #   command: docker
+  #   image: my-gpu-mcp-server
+  #   runtime_args: ["--gpus", "all", "--network", "host"]
+  #   volumes:
+  #     - "/models:/models:ro"
+  #   env:
+  #     MODEL_PATH: /models/latest
+
   # ┌─────────────────────────────────────────────────────────────────────────┐
-  # │ Local process servers (any command via STDIO)                          │
-  # │                                                                       │
-  # │ For non-container commands, "args" and "env" are passed directly      │
-  # │ to the spawned process.                                               │
+  # │ Local process servers (any command via STDIO)                           │
+  # │                                                                         │
+  # │ For non-container commands, "args" and "env" are passed directly        │
+  # │ to the spawned process.                                                 │
   # ├─────────────────────────────────────────────────────────────────────────┤
 
   # Node.js-based server via npx:
@@ -92,10 +120,10 @@ servers:
   #   args: ["--db", "/path/to/database.db"]
 
   # ┌─────────────────────────────────────────────────────────────────────────┐
-  # │ Remote servers (SSE or Streamable HTTP)                                │
-  # │                                                                       │
-  # │ Connect to MCP servers running on remote hosts.                       │
-  # │ Use "headers" to pass authentication tokens.                          │
+  # │ Remote servers (SSE or Streamable HTTP)                                 │
+  # │                                                                         │
+  # │ Connect to MCP servers running on remote hosts.                         │
+  # │ Use "headers" to pass authentication tokens.                            │
   # ├─────────────────────────────────────────────────────────────────────────┤
 
   # Remote server via SSE:

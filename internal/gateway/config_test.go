@@ -188,7 +188,7 @@ func TestIsContainerRuntime(t *testing.T) {
 	}
 }
 
-func TestResolveContainerArgs(t *testing.T) {
+func TestResolveRuntimeArgs(t *testing.T) {
 	t.Parallel()
 
 	t.Run("basic", func(t *testing.T) {
@@ -268,6 +268,112 @@ func TestResolveContainerArgs(t *testing.T) {
 		expected := []string{"run", "--rm", "-i", "my-image"}
 		if len(cfg.Args) != len(expected) {
 			t.Fatalf("args length = %d, want %d: %v", len(cfg.Args), len(expected), cfg.Args)
+		}
+	})
+
+	t.Run("with volumes", func(t *testing.T) {
+		t.Parallel()
+		cfg := &ServerInstanceConfig{
+			Image:   "my-image",
+			Args:    []string{"--flag"},
+			Volumes: []string{"/host/path:/container/path", "/data:/data:ro"},
+		}
+		resolveContainerArgs(cfg)
+
+		// Check -v flags
+		volCount := 0
+		for i, arg := range cfg.Args {
+			if arg == "-v" && i+1 < len(cfg.Args) {
+				volCount++
+			}
+		}
+		if volCount != 2 {
+			t.Errorf("expected 2 volume mounts, found %d in args: %v", volCount, cfg.Args)
+		}
+
+		// Volumes should be nil after resolve
+		if cfg.Volumes != nil {
+			t.Errorf("expected Volumes to be nil, got %v", cfg.Volumes)
+		}
+	})
+
+	t.Run("with runtime_args", func(t *testing.T) {
+		t.Parallel()
+		cfg := &ServerInstanceConfig{
+			Image:       "my-image",
+			Args:        []string{"serve"},
+			RuntimeArgs: []string{"--network", "host", "--privileged"},
+		}
+		resolveContainerArgs(cfg)
+
+		// runtime_args should appear before the image
+		imageIdx := -1
+		for i, arg := range cfg.Args {
+			if arg == "my-image" {
+				imageIdx = i
+				break
+			}
+		}
+		if imageIdx < 0 {
+			t.Fatalf("image not found in args: %v", cfg.Args)
+		}
+
+		// --network should be before the image
+		networkIdx := -1
+		for i, arg := range cfg.Args {
+			if arg == "--network" {
+				networkIdx = i
+				break
+			}
+		}
+		if networkIdx < 0 || networkIdx >= imageIdx {
+			t.Errorf("--network should appear before image, args: %v", cfg.Args)
+		}
+
+		// RuntimeArgs should be nil after resolve
+		if cfg.RuntimeArgs != nil {
+			t.Errorf("expected RuntimeArgs to be nil, got %v", cfg.RuntimeArgs)
+		}
+
+		// trailing args should be after image
+		lastArg := cfg.Args[len(cfg.Args)-1]
+		if lastArg != "serve" {
+			t.Errorf("last arg = %q, want \"serve\"", lastArg)
+		}
+	})
+
+	t.Run("all container options", func(t *testing.T) {
+		t.Parallel()
+		cfg := &ServerInstanceConfig{
+			Image:       "grafana/mcp-grafana",
+			Args:        []string{"-t", "stdio"},
+			Env:         map[string]string{"KEY": "val"},
+			Volumes:     []string{"/a:/b"},
+			RuntimeArgs: []string{"--network", "host"},
+		}
+		resolveContainerArgs(cfg)
+
+		// Verify order: run --rm -i ... -e ... -v ... --network host <image> -t stdio
+		if cfg.Args[0] != "run" || cfg.Args[1] != "--rm" || cfg.Args[2] != "-i" {
+			t.Errorf("expected run --rm -i prefix, got %v", cfg.Args[:3])
+		}
+
+		// Image should be present
+		imageIdx := -1
+		for i, arg := range cfg.Args {
+			if arg == "grafana/mcp-grafana" {
+				imageIdx = i
+				break
+			}
+		}
+		if imageIdx < 0 {
+			t.Fatalf("image not found in args: %v", cfg.Args)
+		}
+
+		// Trailing args after image
+		remaining := cfg.Args[imageIdx+1:]
+		if len(remaining) != 2 || remaining[0] != "-t" || remaining[1] != "stdio" {
+			t.Errorf("expected [-t stdio] after image, got %v", remaining)
 		}
 	})
 }

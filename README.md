@@ -136,17 +136,17 @@ servers:
       GITHUB_TOKEN: ${GITHUB_TOKEN}
 ```
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `name` | yes | Unique identifier, used as tool namespace prefix |
-| `transport` | yes | Must be `stdio` |
-| `command` | yes | Command to execute |
-| `args` | no | Arguments passed to the command |
-| `env` | no | Extra environment variables for the process |
+| Field       | Required | Description                                    |
+|-------------|----------|------------------------------------------------|
+| `name`      | yes      | Unique identifier, used as tool namespace prefix |
+| `transport` | yes      | Must be `stdio`                                |
+| `command`   | yes      | Command to execute                             |
+| `args`      | no       | Arguments passed to the command                |
+| `env`       | no       | Extra environment variables for the process    |
 
 #### Container (Docker / Podman)
 
-When `command` is `docker`, `podman`, `nerdctl`, or `finch`, muxcp automatically constructs the container run command. You just specify the `image` and `env` — muxcp adds `run --rm -i` and `-e` flags for you.
+When `command` is `docker`, `podman`, `nerdctl`, or `finch`, muxcp automatically constructs the container run command. You specify the `image`, `env`, `volumes`, and any extra `runtime_args` — muxcp adds `run --rm -i`, `-e`, and `-v` flags for you.
 
 ```yaml
 servers:
@@ -158,6 +158,17 @@ servers:
     env:
       GRAFANA_URL: https://grafana.production.example.com
       GRAFANA_API_KEY: ${GRAFANA_PROD_API_KEY}
+
+  - name: gpu_tools
+    transport: stdio
+    command: docker
+    image: my-gpu-mcp-server
+    runtime_args: ["--gpus", "all", "--network", "host"]
+    volumes:
+      - "/models:/models:ro"
+      - "/data:/data"
+    env:
+      MODEL_PATH: /models/latest
 ```
 
 This is equivalent to running:
@@ -167,16 +178,25 @@ docker run --rm -i \
   -e GRAFANA_URL=https://grafana.production.example.com \
   -e GRAFANA_API_KEY=... \
   grafana/mcp-grafana -t stdio
+
+docker run --rm -i \
+  -e MODEL_PATH=/models/latest \
+  -v /models:/models:ro \
+  -v /data:/data \
+  --gpus all --network host \
+  my-gpu-mcp-server
 ```
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `name` | yes | Unique identifier |
-| `transport` | yes | Must be `stdio` |
-| `command` | yes | Container runtime (`docker`, `podman`, `nerdctl`, `finch`) |
-| `image` | yes | Container image to run |
-| `args` | no | Arguments passed to the container entrypoint (after the image) |
-| `env` | no | Environment variables passed via `-e` flags |
+| Field          | Required | Description                                                                       |
+|----------------|----------|-----------------------------------------------------------------------------------|
+| `name`         | yes      | Unique identifier                                                                 |
+| `transport`    | yes      | Must be `stdio`                                                                   |
+| `command`      | yes      | Container runtime (`docker`, `podman`, `nerdctl`, `finch`)                        |
+| `image`        | yes      | Container image to run                                                            |
+| `args`         | no       | Arguments passed to the container entrypoint (after the image)                    |
+| `env`          | no       | Environment variables passed via `-e` flags                                       |
+| `volumes`      | no       | Volume mounts passed via `-v` flags (e.g. `/host/path:/container/path:ro`)        |
+| `runtime_args` | no       | Extra runtime flags inserted before the image (e.g. `--gpus all`, `--network host`) |
 
 #### Remote server (SSE)
 
@@ -205,12 +225,12 @@ servers:
       X-Tenant-ID: "my-org"
 ```
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `name` | yes | Unique identifier |
-| `transport` | yes | `sse` or `streamable-http` |
-| `url` | yes | Server endpoint URL |
-| `headers` | no | HTTP headers (e.g., for authentication) |
+| Field       | Required | Description                              |
+|-------------|----------|------------------------------------------|
+| `name`      | yes      | Unique identifier                        |
+| `transport` | yes      | `sse` or `streamable-http`               |
+| `url`       | yes      | Server endpoint URL                      |
+| `headers`   | no       | HTTP headers (e.g., for authentication)  |
 
 ### Multi-instance pattern
 

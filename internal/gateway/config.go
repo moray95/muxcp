@@ -77,14 +77,16 @@ const (
 
 // ServerInstanceConfig defines the configuration for a single upstream MCP server.
 type ServerInstanceConfig struct {
-	Name      string            `yaml:"name"`
-	Transport TransportType     `yaml:"transport"`
-	Command   string            `yaml:"command,omitempty"` // for stdio
-	Args      []string          `yaml:"args,omitempty"`    // for stdio
-	Image     string            `yaml:"image,omitempty"`   // container image (for docker/podman)
-	URL       string            `yaml:"url,omitempty"`     // for sse / streamable-http
-	Headers   map[string]string `yaml:"headers,omitempty"` // for remote transports
-	Env       map[string]string `yaml:"env,omitempty"`     // for stdio (extra env vars)
+	Name        string            `yaml:"name"`
+	Transport   TransportType     `yaml:"transport"`
+	Command     string            `yaml:"command,omitempty"`      // for stdio
+	Args        []string          `yaml:"args,omitempty"`         // for stdio (passed after image for containers)
+	Image       string            `yaml:"image,omitempty"`        // container image (for docker/podman)
+	Volumes     []string          `yaml:"volumes,omitempty"`      // container volume mounts (host:container)
+	RuntimeArgs []string          `yaml:"runtime_args,omitempty"` // extra flags passed to the container runtime (before the image)
+	URL         string            `yaml:"url,omitempty"`          // for sse / streamable-http
+	Headers     map[string]string `yaml:"headers,omitempty"`      // for remote transports
+	Env         map[string]string `yaml:"env,omitempty"`          // for stdio (extra env vars)
 }
 
 // GatewayConfig defines the top-level gateway configuration.
@@ -142,21 +144,29 @@ func isContainerRuntime(command string) bool {
 }
 
 // resolveContainerArgs builds the full args for a container runtime command.
-// It prepends "run --rm -i", adds -e flags for env vars, the image, then the user args.
+// It prepends "run --rm -i", adds -e flags for env vars, -v flags for volumes,
+// any extra runtime_args, the image, then the user args.
 func resolveContainerArgs(cfg *ServerInstanceConfig) {
-	// 3 base args + 2 per env var + 1 image + user args
-	args := make([]string, 0, 3+2*len(cfg.Env)+1+len(cfg.Args))
+	args := make([]string, 0,
+		3+2*len(cfg.Env)+2*len(cfg.Volumes)+len(cfg.RuntimeArgs)+1+len(cfg.Args))
 	args = append(args, "run", "--rm", "-i")
 
 	for k, v := range cfg.Env {
 		args = append(args, "-e", k+"="+v)
 	}
 
+	for _, v := range cfg.Volumes {
+		args = append(args, "-v", v)
+	}
+
+	args = append(args, cfg.RuntimeArgs...)
 	args = append(args, cfg.Image)
 	args = append(args, cfg.Args...)
 
 	cfg.Args = args
-	cfg.Env = nil // env is passed via -e, not process env
+	cfg.Env = nil     // env is passed via -e, not process env
+	cfg.Volumes = nil // volumes are passed via -v
+	cfg.RuntimeArgs = nil
 }
 
 func validateConfig(cfg *GatewayConfig) error {
