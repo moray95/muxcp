@@ -125,8 +125,15 @@ func TestFindConfig_NoneFound(t *testing.T) {
 	userDir, _ := os.UserConfigDir()
 	userCfg := filepath.Join(userDir, "muxcp", "config.yaml")
 	if _, err := os.Stat(userCfg); err == nil {
-		// File exists — skip this test to avoid messing with real config
 		t.Skip("user config exists, skipping none-found test")
+	}
+
+	// Also check ~/.config/muxcp/
+	if home, err := os.UserHomeDir(); err == nil {
+		dotCfg := filepath.Join(home, ".config", "muxcp", "config.yaml")
+		if _, err := os.Stat(dotCfg); err == nil {
+			t.Skip("~/.config/muxcp/config.yaml exists, skipping none-found test")
+		}
 	}
 
 	_, err = FindConfig("")

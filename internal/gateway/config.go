@@ -33,6 +33,11 @@ func FindConfig(explicit string) (string, error) {
 		candidates = append(candidates, filepath.Join(userDir, "muxcp", configFileName))
 	}
 
+	if home, err := os.UserHomeDir(); err == nil {
+		dotConfig := filepath.Join(home, ".config", "muxcp", configFileName)
+		candidates = append(candidates, dotConfig)
+	}
+
 	candidates = append(candidates, systemConfigPath())
 
 	for _, path := range candidates {

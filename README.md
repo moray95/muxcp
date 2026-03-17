@@ -95,8 +95,9 @@ muxcp uses a YAML config file. It looks for the config in the following location
 
 1. Path specified with `-config` flag
 2. `./config.yaml` (current directory)
-3. `~/.config/muxcp/config.yaml` (macOS/Linux) or `%AppData%\muxcp\config.yaml` (Windows)
-4. `/etc/muxcp/config.yaml` (Unix) or `%ProgramData%\muxcp\config.yaml` (Windows)
+3. OS user config directory: `~/Library/Application Support/muxcp/config.yaml` (macOS), `~/.config/muxcp/config.yaml` (Linux), or `%AppData%\muxcp\config.yaml` (Windows)
+4. `~/.config/muxcp/config.yaml` (macOS/Linux dotconfig fallback)
+5. `/etc/muxcp/config.yaml` (Unix) or `%ProgramData%\muxcp\config.yaml` (Windows)
 
 Environment variables can be referenced as `${VAR_NAME}` anywhere in the config file.
 
